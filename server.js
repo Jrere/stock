@@ -40,8 +40,7 @@ const API_KEY = process.env.DEEPSEEK_API_KEY;
 const API_BASE = process.env.DEEPSEEK_API_BASE || 'https://api.deepseek.com';
 
 if (!API_KEY) {
-  console.error('❌ .env 中缺少 DEEPSEEK_API_KEY');
-  process.exit(1);
+  console.warn('⚠️  .env 中未配置 DEEPSEEK_API_KEY，需在网页端配置');
 }
 
 // ===== MIME =====
@@ -84,12 +83,28 @@ function serveStatic(req, res) {
   });
 }
 
+// ===== 解析请求 Key =====
+// 优先使用前端通过 X-API-Key 头传入的 Key，否则回退到 .env 中的 Key
+function resolveApiKey(req) {
+  const headerKey = req.headers['x-api-key'];
+  if (headerKey && typeof headerKey === 'string' && headerKey.trim()) {
+    return headerKey.trim();
+  }
+  return API_KEY;
+}
+
 // ===== 代理 DeepSeek =====
 function proxyChat(req, res) {
-  // 只接受 POST
   if (req.method !== 'POST') {
     res.writeHead(405, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return;
+  }
+
+  const activeKey = resolveApiKey(req);
+  if (!activeKey) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: '未配置 API Key，请在页面设置中填入' }));
     return;
   }
 
@@ -105,7 +120,6 @@ function proxyChat(req, res) {
       return;
     }
 
-    // 强制使用服务端 Key
     const apiPayload = JSON.stringify({
       model: payload.model || 'deepseek-chat',
       messages: payload.messages,
@@ -123,7 +137,7 @@ function proxyChat(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
+        'Authorization': `Bearer ${activeKey}`,
         'Content-Length': Buffer.byteLength(apiPayload),
       },
     };
@@ -197,10 +211,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 健康检查
+  // 健康检查（支持前端 Key 检测）
   if (req.url === '/api/health') {
+    const activeKey = resolveApiKey(req);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', hasKey: !!API_KEY }));
+    res.end(JSON.stringify({ status: 'ok', hasKey: !!activeKey }));
     return;
   }
 
