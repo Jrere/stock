@@ -643,6 +643,140 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
 
   ::selection { background: rgba(212,168,83,0.25); color: var(--text); }
+
+  /* ===== Brand Pulse ===== */
+  .brand-icon {
+    position: relative;
+  }
+  .brand-icon::before {
+    content: '';
+    position: absolute; inset: -3px;
+    border-radius: 6px;
+    background: var(--accent);
+    opacity: 0;
+    animation: brandPulse 3s ease-in-out infinite;
+    z-index: -1;
+  }
+  @keyframes brandPulse {
+    0%, 100% { opacity: 0; transform: scale(1); }
+    50% { opacity: 0.15; transform: scale(1.08); }
+  }
+
+  /* ===== Ticker Sparkline ===== */
+  .ticker-item .sparkline {
+    width: 48px; height: 16px;
+    opacity: 0.6;
+  }
+  .ticker-item .sparkline polyline {
+    fill: none; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* ===== Stat Mini Bar ===== */
+  .stat-bar {
+    margin-top: 10px; height: 3px;
+    background: var(--surface3); border-radius: 2px; overflow: hidden;
+  }
+  .stat-bar-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 1s ease-out;
+  }
+
+  /* ===== Progress Counter ===== */
+  .progress-wrap {
+    display: none; align-items: center; gap: 10px;
+    margin-bottom: 14px;
+  }
+  .progress-wrap.visible { display: flex; }
+  .progress-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.8rem; font-weight: 700;
+    color: var(--accent); letter-spacing: -1px;
+    min-width: 60px;
+  }
+  .progress-meta {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .progress-label {
+    font-size: 0.72rem; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+  }
+  .progress-sub {
+    font-size: 0.78rem; color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ===== Scanline on streaming result ===== */
+  .result-card.streaming::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scanline 2s linear infinite;
+    z-index: 1;
+  }
+  @keyframes scanline {
+    0% { top: 0; opacity: 0.8; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  /* ===== Sidebar version tag ===== */
+  .sidebar-version {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem; color: var(--text3);
+    letter-spacing: 0.5px; padding: 6px 0 0;
+    opacity: 0.5;
+  }
+
+  /* ===== Keyboard shortcut bar ===== */
+  .kbd-bar {
+    display: flex; gap: 16px; margin-top: 6px;
+  }
+  .kbd-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.66rem; color: var(--text3);
+  }
+  .kbd-item kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px; padding: 0 5px;
+    background: var(--surface3); border: 1px solid var(--border);
+    border-radius: 3px; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem; color: var(--text2);
+  }
+
+  /* ===== Result elapsed badge ===== */
+  .result-elapsed {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; color: var(--text3);
+    padding: 3px 8px; background: var(--surface3);
+    border-radius: 3px; margin-left: 8px;
+  }
+
+  /* ===== Nav hover line animation ===== */
+  .nav-item::after {
+    content: '';
+    position: absolute; bottom: 0; left: 12px; right: 12px;
+    height: 1px; background: var(--accent);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.25s ease;
+    opacity: 0.3;
+  }
+  .nav-item:hover::after { transform: scaleX(1); }
+  .nav-item.active::after { display: none; }
+
+  /* ===== Chat message role label ===== */
+  .chat-role {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .chat-role-user { color: var(--accent); }
+  .chat-role-ai { color: var(--cyan); }
+
+  /* ===== Sidebar active indicator dot ===== */
+  .sidebar-indicator {
+    position: fixed; left: 260px; top: 0; bottom: 0;
+    width: 1px; background: var(--border);
+    z-index: 99;
+  }
 </style>
 </head>
 <body>
@@ -690,8 +824,11 @@
         <div class="status-dot" id="statusDot"></div>
         <span id="statusText">检查中...</span>
       </div>
+      <div class="sidebar-version">v1.0 · NEXUS</div>
     </div>
   </aside>
+
+  <div class="sidebar-indicator"></div>
 
   <!-- Main -->
   <main class="main">
@@ -717,19 +854,23 @@
         <div class="stat-card">
           <div class="stat-label">分析次数</div>
           <div class="stat-value" id="statCount">0</div>
+          <div class="stat-bar"><div class="stat-bar-fill" id="statBar1" style="width:0%; background:var(--accent)"></div></div>
         </div>
         <div class="stat-card">
           <div class="stat-label">覆盖市场</div>
           <div class="stat-value">3</div>
           <div class="stat-change">US / CN / HK</div>
+          <div class="stat-bar"><div class="stat-bar-fill" style="width:100%; background:var(--cyan)"></div></div>
         </div>
         <div class="stat-card">
           <div class="stat-label">分析维度</div>
           <div class="stat-value">6</div>
+          <div class="stat-bar"><div class="stat-bar-fill" style="width:100%; background:var(--green)"></div></div>
         </div>
         <div class="stat-card">
           <div class="stat-label">模型</div>
           <div class="stat-value" style="font-size:0.95rem; font-family:'JetBrains Mono',monospace; letter-spacing:1px">DeepSeek</div>
+          <div class="stat-bar"><div class="stat-bar-fill" style="width:100%; background:var(--yellow)"></div></div>
         </div>
       </div>
 
@@ -820,10 +961,25 @@
           <span class="action-hint">按 <kbd>Enter</kbd> 快速开始</span>
         </div>
 
+        <div class="kbd-bar">
+          <div class="kbd-item"><kbd>Enter</kbd> 分析</div>
+          <div class="kbd-item"><kbd>Esc</kbd> 停止</div>
+          <div class="kbd-item"><kbd>1</kbd>-<kbd>6</kbd> 切换维度</div>
+        </div>
+
         <!-- Error -->
         <div class="error-box" id="errorBox">
           <span class="err-icon">!</span>
           <span id="errorText"></span>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-wrap" id="progressWrap">
+          <div class="progress-pct" id="progressPct">0%</div>
+          <div class="progress-meta">
+            <div class="progress-label">分析进度</div>
+            <div class="progress-sub" id="progressSub">连接中...</div>
+          </div>
         </div>
 
         <!-- Loading -->
@@ -838,7 +994,10 @@
         <!-- Result -->
         <div class="result-area" id="resultArea">
           <div class="result-header">
-            <div class="result-tag"><span class="dot"></span> DONE</div>
+            <div style="display:flex; align-items:center">
+              <div class="result-tag"><span class="dot"></span> DONE</div>
+              <span class="result-elapsed" id="resultElapsed"></span>
+            </div>
             <button class="btn btn-ghost" onclick="copyResult()" style="padding:6px 14px; font-size:0.74rem">
               复制报告
             </button>
@@ -932,6 +1091,10 @@ let chatStockLabel = '';
 let isChatting = false;
 let chatAbortController = null;
 
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // ===== Init =====
 (async function init() {
   apiKey = localStorage.getItem('nexus_api_key') || '';
@@ -1021,23 +1184,27 @@ function updateClock() {
 // ===== Ticker =====
 function initTicker() {
   const items = [
-    { name: 'AAPL', price: '189.84', change: '+1.23%', up: true },
-    { name: 'TSLA', price: '248.42', change: '-0.87%', up: false },
-    { name: 'NVDA', price: '131.28', change: '+3.45%', up: true },
-    { name: '600519', price: '1688.00', change: '+0.52%', up: true },
-    { name: '09988', price: '82.35', change: '-1.15%', up: false },
-    { name: 'MSFT', price: '415.60', change: '+0.91%', up: true },
-    { name: 'AMZN', price: '186.13', change: '+2.01%', up: true },
-    { name: '000858', price: '148.50', change: '-0.33%', up: false },
+    { name: 'AAPL', price: '189.84', change: '+1.23%', up: true, spark: [4,6,5,7,6,8,7,9,8,10,9,11] },
+    { name: 'TSLA', price: '248.42', change: '-0.87%', up: false, spark: [10,9,8,9,7,8,6,7,5,6,4,5] },
+    { name: 'NVDA', price: '131.28', change: '+3.45%', up: true, spark: [3,4,5,4,6,7,6,8,9,10,11,12] },
+    { name: '600519', price: '1688.00', change: '+0.52%', up: true, spark: [6,7,6,7,7,8,7,8,8,9,8,9] },
+    { name: '09988', price: '82.35', change: '-1.15%', up: false, spark: [8,7,8,6,7,5,6,4,5,3,4,3] },
+    { name: 'MSFT', price: '415.60', change: '+0.91%', up: true, spark: [5,6,5,7,6,7,8,7,8,9,8,10] },
+    { name: 'AMZN', price: '186.13', change: '+2.01%', up: true, spark: [4,5,4,6,5,7,6,8,7,9,10,11] },
+    { name: '000858', price: '148.50', change: '-0.33%', up: false, spark: [7,7,6,7,6,6,5,6,5,5,4,5] },
   ];
   const track = document.getElementById('tickerTrack');
-  const html = items.map(i => `
+  const html = items.map(i => {
+    const pts = i.spark.map((v, idx) => `${idx * 4},${14 - v}`).join(' ');
+    const color = i.up ? 'var(--green)' : 'var(--red)';
+    return `
     <div class="ticker-item">
       <span class="name">${i.name}</span>
+      <svg class="sparkline" viewBox="0 0 44 16"><polyline points="${pts}" stroke="${color}"/></svg>
       <span class="price">$${i.price}</span>
-      <span style="color:${i.up ? 'var(--green)' : 'var(--red)'}; font-weight:600">${i.change}</span>
-    </div>
-  `).join('');
+      <span style="color:${color}; font-weight:600">${i.change}</span>
+    </div>`;
+  }).join('');
   track.innerHTML = html + html;
 }
 
@@ -1172,6 +1339,12 @@ ${typeDesc}
     const decoder = new TextDecoder();
     let buffer = '';
     let fullText = '';
+    let tokenCount = 0;
+
+    // Show progress
+    document.getElementById('progressWrap').classList.add('visible');
+    document.getElementById('progressPct').textContent = '0%';
+    document.getElementById('progressSub').textContent = '接收数据...';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -1189,6 +1362,11 @@ ${typeDesc}
           const delta = json.choices?.[0]?.delta?.content;
           if (delta) {
             fullText += delta;
+            tokenCount++;
+            // Update progress (rough estimate: 4096 max tokens)
+            const pct = Math.min(Math.round((tokenCount / 4096) * 100), 99);
+            document.getElementById('progressPct').textContent = pct + '%';
+            document.getElementById('progressSub').textContent = `${tokenCount} tokens`;
             renderMarkdown(card, fullText);
             card.scrollTop = card.scrollHeight;
           }
@@ -1196,8 +1374,20 @@ ${typeDesc}
       }
     }
 
+    document.getElementById('progressPct').textContent = '100%';
+    document.getElementById('progressSub').textContent = `完成 · ${tokenCount} tokens`;
+    setTimeout(() => document.getElementById('progressWrap').classList.remove('visible'), 2000);
+
     renderMarkdown(card, fullText);
     card.classList.remove('streaming');
+
+    // Show elapsed
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    document.getElementById('resultElapsed').textContent = `${elapsed}s`;
+
+    // Show elapsed
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    document.getElementById('resultElapsed').textContent = `${elapsed}s`;
 
     chatStockLabel = marketLabel;
     chatMessages = [
@@ -1209,10 +1399,12 @@ ${typeDesc}
     document.getElementById('chatMessages').innerHTML = '';
     document.getElementById('chatInput').focus();
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     analysisCount++;
     localStorage.setItem('nexus_count', analysisCount);
     document.getElementById('statCount').textContent = analysisCount;
+    // Update stat bar (max 50 analyses for full bar)
+    const barPct = Math.min((analysisCount / 50) * 100, 100);
+    document.getElementById('statBar1').style.width = barPct + '%';
 
     history.unshift({
       code: stockCode, market: marketLabel,
@@ -1260,14 +1452,17 @@ async function sendChat() {
 
   const userDiv = document.createElement('div');
   userDiv.className = 'chat-msg chat-msg-user';
-  userDiv.textContent = text;
+  userDiv.innerHTML = '<div class="chat-role chat-role-user">YOU</div>' + escapeHtml(text);
   messagesEl.appendChild(userDiv);
 
   chatMessages.push({ role: 'user', content: text });
 
   const aiDiv = document.createElement('div');
   aiDiv.className = 'chat-msg chat-msg-ai streaming';
-  aiDiv.textContent = '';
+  const aiContent = document.createElement('div');
+  aiContent.className = 'chat-ai-content';
+  aiDiv.innerHTML = '<div class="chat-role chat-role-ai">NEXUS</div>';
+  aiDiv.appendChild(aiContent);
   messagesEl.appendChild(aiDiv);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 
@@ -1321,24 +1516,24 @@ async function sendChat() {
           const delta = json.choices?.[0]?.delta?.content;
           if (delta) {
             fullText += delta;
-            renderMarkdown(aiDiv, fullText);
+            renderMarkdown(aiContent, fullText);
             messagesEl.scrollTop = messagesEl.scrollHeight;
           }
         } catch(e) {}
       }
     }
 
-    renderMarkdown(aiDiv, fullText);
+    renderMarkdown(aiContent, fullText);
     aiDiv.classList.remove('streaming');
     chatMessages.push({ role: 'assistant', content: fullText });
 
   } catch (err) {
     aiDiv.classList.remove('streaming');
     if (err.name === 'AbortError') {
-      aiDiv.textContent += '\n\n已中止';
+      aiContent.textContent += '\n\n已中止';
       if (fullText) chatMessages.push({ role: 'assistant', content: fullText });
     } else {
-      aiDiv.textContent = `错误: ${err.message}`;
+      aiContent.textContent = `错误: ${err.message}`;
     }
   } finally {
     isChatting = false;
@@ -1436,6 +1631,35 @@ document.addEventListener('DOMContentLoaded', () => {
       chatInput.style.height = 'auto';
       chatInput.style.height = Math.min(chatInput.scrollHeight, 130) + 'px';
     });
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Don't trigger when typing in inputs
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    // Esc to stop analysis
+    if (e.key === 'Escape' && isAnalyzing) {
+      startAnalysis();
+      return;
+    }
+
+    // 1-6 to toggle dimensions
+    const dimKeys = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5 };
+    if (e.key in dimKeys) {
+      const chips = document.querySelectorAll('.dim-chip');
+      if (chips[dimKeys[e.key]]) {
+        chips[dimKeys[e.key]].click();
+      }
+    }
+  });
+
+  // Init stat bar
+  const savedCount = parseInt(localStorage.getItem('nexus_count') || '0');
+  if (savedCount > 0) {
+    const barPct = Math.min((savedCount / 50) * 100, 100);
+    const bar = document.getElementById('statBar1');
+    if (bar) bar.style.width = barPct + '%';
   }
 });
 </script>
